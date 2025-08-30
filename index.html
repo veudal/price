@@ -2,59 +2,165 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Datei-Upload und Sortieren</title>
+  <title>Produktliste Sortieren</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* --- Global Styles --- */
     body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      background: #f5f5f5;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
+
     h1 {
-      color: #333;
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: #58a6ff;
+      text-align: center;
     }
+
+    /* --- Upload Button --- */
+    .upload-btn {
+      display: inline-block;
+      background: #1f6feb;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    .upload-btn:hover {
+      background: #388bfd;
+      transform: scale(1.05);
+    }
+    .upload-btn:active {
+      transform: scale(0.98);
+    }
+
     input[type="file"] {
-      margin: 1rem 0;
+      display: none;
     }
-    table {
-      border-collapse: collapse;
+
+    /* --- Table Styles --- */
+    .table-container {
       width: 100%;
-      background: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      max-width: 800px;
+      overflow-x: auto;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      background: #161b22;
+    }
+
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
+      padding: 0.9rem 1rem;
       text-align: left;
     }
+
     th {
-      background: #eee;
+      background: #21262d;
       cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+      color: #58a6ff;
+      position: relative;
     }
+
     th:hover {
-      background: #ddd;
+      background: #30363d;
+    }
+
+    tr:nth-child(even) {
+      background: #1e242c;
+    }
+
+    tr:hover {
+      background: #2d333b;
+    }
+
+    td {
+      color: #e6edf3;
+    }
+
+    /* --- Icons --- */
+    .sort-icon {
+      margin-left: 8px;
+      font-size: 0.9rem;
+      opacity: 0.5;
+    }
+    th.active .sort-icon {
+      opacity: 1;
+      color: #58a6ff;
+    }
+
+    /* --- Animation --- */
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeSlide 0.4s ease forwards;
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      .upload-btn {
+        width: 100%;
+        padding: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Produktliste hochladen und sortieren</h1>
+  <h1>Produktliste hochladen & sortieren</h1>
+
+  <label for="fileInput" class="upload-btn">📂 Datei auswählen</label>
   <input type="file" id="fileInput" accept=".txt,.csv">
-  
-  <table id="dataTable">
-    <thead>
-      <tr>
-        <th>Produkt</th>
-        <th id="preisHeader">Preis ⬍</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+
+  <div class="table-container">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th data-key="produkt">Produkt <span class="sort-icon">⬍</span></th>
+          <th data-key="preis">Preis <span class="sort-icon">⬍</span></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const tableBody = document.querySelector('#dataTable tbody');
-    const preisHeader = document.getElementById('preisHeader');
+    const headers = document.querySelectorAll('#dataTable th');
     let data = [];
-    let ascending = true;
+    let sortState = { key: "preis", asc: true };
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
@@ -72,25 +178,58 @@
       reader.readAsText(file);
     });
 
-    preisHeader.addEventListener('click', () => {
-      ascending = !ascending;
-      sortData();
-      renderTable();
+    headers.forEach(header => {
+      header.addEventListener('click', () => {
+        const key = header.getAttribute('data-key');
+        if (sortState.key === key) {
+          sortState.asc = !sortState.asc;
+        } else {
+          sortState.key = key;
+          sortState.asc = true;
+        }
+        renderTable();
+        updateIcons();
+      });
     });
 
-    function sortData() {
-      data.sort((a, b) => ascending ? a.preis - b.preis : b.preis - a.preis);
-    }
-
     function renderTable() {
-      sortData();
+      data.sort((a, b) => {
+        if (sortState.key === "preis") {
+          return sortState.asc ? a.preis - b.preis : b.preis - a.preis;
+        } else {
+          return sortState.asc 
+            ? a.produkt.localeCompare(b.produkt) 
+            : b.produkt.localeCompare(a.produkt);
+        }
+      });
+
       tableBody.innerHTML = "";
-      data.forEach(item => {
+      data.forEach((item, index) => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${item.produkt}</td><td>${item.preis.toFixed(2)}</td>`;
+        row.classList.add("fade-in");
+        row.style.animationDelay = `${index * 0.05}s`; // Stagger Effekt
+        row.innerHTML = `
+          <td>${item.produkt}</td>
+          <td>${item.preis.toFixed(2)} €</td>
+        `;
         tableBody.appendChild(row);
       });
     }
+
+    function updateIcons() {
+      headers.forEach(header => {
+        const icon = header.querySelector(".sort-icon");
+        header.classList.remove("active");
+        icon.textContent = "⬍";
+        if (header.getAttribute("data-key") === sortState.key) {
+          header.classList.add("active");
+          icon.textContent = sortState.asc ? "▲" : "▼";
+        }
+      });
+    }
+
+    // Initial icon state
+    updateIcons();
   </script>
 </body>
 </html>
