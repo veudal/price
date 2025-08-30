@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Datei-Upload und Sortieren</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="file"] {
+      margin: 1rem 0;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #eee;
+      cursor: pointer;
+    }
+    th:hover {
+      background: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Produktliste hochladen und sortieren</h1>
+  <input type="file" id="fileInput" accept=".txt,.csv">
+  
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>Produkt</th>
+        <th id="preisHeader">Preis ⬍</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const tableBody = document.querySelector('#dataTable tbody');
+    const preisHeader = document.getElementById('preisHeader');
+    let data = [];
+    let ascending = true;
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "");
+        data = lines.map(line => {
+          const [produkt, preis] = line.split(';');
+          return { produkt: produkt.trim(), preis: parseFloat(preis.trim()) };
+        });
+        renderTable();
+      };
+      reader.readAsText(file);
+    });
+
+    preisHeader.addEventListener('click', () => {
+      ascending = !ascending;
+      sortData();
+      renderTable();
+    });
+
+    function sortData() {
+      data.sort((a, b) => ascending ? a.preis - b.preis : b.preis - a.preis);
+    }
+
+    function renderTable() {
+      sortData();
+      tableBody.innerHTML = "";
+      data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.produkt}</td><td>${item.preis.toFixed(2)}</td>`;
+        tableBody.appendChild(row);
+      });
+    }
+  </script>
+</body>
+</html>
